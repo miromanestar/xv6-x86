@@ -13,8 +13,9 @@ main(int argc, char *argv[])
     if(argc > 1){
         int i;
         
+        printf(1, "Hello ");
         for (i = 1; i < argc; i++)
-            printf(1, "Hello %s%s", argv[i], i + 1 < argc ? " " : "\n");
+            printf(1, "%s%s", argv[i], i + 1 < argc ? " " : "\n");
     } else {
         printf(1, "Hello unknown user!\n");
     }

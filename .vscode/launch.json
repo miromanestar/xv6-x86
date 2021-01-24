@@ -6,7 +6,7 @@
             "request": "attach",
             "name": "debug xv6",
             "executable": "./kernel",
-            "target": "localhost:26001",
+            "target": "localhost:26000",
             "remote": true,
             "cwd": "${workspaceRoot}",
             "autorun": [
