@@ -29,7 +29,7 @@ main(int argc, char *argv[])
             exit();
         }
 
-        if ((fd1 = open(argv[i], O_CREATE|O_RDWR)) < 0) { //Exit if cannot create or write to file (Also assign fd1 to dest file)
+        if ((fd1 = open(argv[i], O_CREATE | O_WRONLY)) < 0) { //Exit if cannot create or write to file (Also assign fd1 to dest file)
             printf(1, "cp: cannot create %s", argv[i]);
             exit();
         }
