@@ -133,7 +133,7 @@ runcmd(struct cmd *cmd)
 int
 getcmd(char *buf, int nbuf)
 {
-  printf(2, "mirom$ ");
+  printf(2, "mirom$ "); //Modifed to have my name
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
   if(buf[0] == 0) // EOF
