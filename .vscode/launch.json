@@ -6,7 +6,7 @@
             "request": "attach",
             "name": "launch gdb xv6",
             "executable": "./kernel",
-            "target": "localhost:26000",
+            "target": "localhost:26001",
             "remote": true,
             "cwd": "${workspaceRoot}",
             "autorun": [
