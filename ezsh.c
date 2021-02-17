@@ -19,7 +19,9 @@ char symbols[] = "<|>&;()";
 
 struct cmd* parse_cmd(char* buf) {
     struct cmd* cmd;
-    cmd = malloc(sizeof *cmd);
+    cmd = malloc(sizeof (struct cmd));
+
+    memmove(&(cmd->c), buf, strchr(buf, ' ') - buf);
 
     return cmd;
 }
@@ -31,7 +33,12 @@ void ezsh_loop(void) {
         printf(2, "EZ$ ");
         memset(buf, 0, sizeof(buf));
         gets(buf, sizeof(buf));
-        printf(2, "\n%p\n", strchr(buf, ' '));
+        
+        struct cmd* cmd = parse_cmd(buf);
+        
+        for (int i = 0; i < strlen(cmd->c); i++)
+            printf(2, cmd->c);
+
         //wait();
     }
 }
