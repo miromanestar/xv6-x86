@@ -4,6 +4,7 @@
 #include "user.h"
 #include "x86.h"
 
+//Copies the array of chars to arg2 from arg2
 char*
 strcpy(char *s, const char *t)
 {
@@ -15,6 +16,7 @@ strcpy(char *s, const char *t)
   return os;
 }
 
+//Compares two char arrays; returns 0 if equal, < 0 if the first is less than, > 0 if the first is greater than 
 int
 strcmp(const char *p, const char *q)
 {
@@ -23,6 +25,7 @@ strcmp(const char *p, const char *q)
   return (uchar)*p - (uchar)*q;
 }
 
+//Returns the length of a char array
 uint
 strlen(const char *s)
 {
@@ -33,6 +36,7 @@ strlen(const char *s)
   return n;
 }
 
+//From memory address arg1, sets value to arg2, arg3 times
 void*
 memset(void *dst, int c, uint n)
 {
@@ -40,6 +44,7 @@ memset(void *dst, int c, uint n)
   return dst;
 }
 
+//Returns a pointer to the address of the first instance of arg2 in arg1
 char*
 strchr(const char *s, char c)
 {
@@ -49,6 +54,8 @@ strchr(const char *s, char c)
   return 0;
 }
 
+
+//Reads from input and store inside arg1 (Also returns it), up to arg2 chars
 char*
 gets(char *buf, int max)
 {
@@ -67,6 +74,7 @@ gets(char *buf, int max)
   return buf;
 }
 
+//Returns the status of file at arg1 described by arg2
 int
 stat(const char *n, struct stat *st)
 {
@@ -81,6 +89,7 @@ stat(const char *n, struct stat *st)
   return r;
 }
 
+//Returns integer value of a char array or 0 if it contains non-numerical chars
 int
 atoi(const char *s)
 {
@@ -92,6 +101,7 @@ atoi(const char *s)
   return n;
 }
 
+//Sets the value of arg1 to arg2 up to n items in array; returns arg1
 void*
 memmove(void *vdst, const void *vsrc, int n)
 {

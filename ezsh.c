@@ -8,14 +8,20 @@
 #include "user.h"
 #include "fcntl.h"
 
-int get_cmd(char *buf, int nbuf)
-{
-  printf(2, "mirom$ "); //Modifed to have my name
-  memset(buf, 0, nbuf);
-  gets(buf, nbuf);
-  if(buf[0] == 0) // EOF
-    return -1;
-  return 0;
+//A simple struct to allow me to more easily pass a command into exec & fork
+struct cmd {
+  char* c;
+  char** argv;
+};
+
+char whitespace[] = " \t\r\n\v";
+char symbols[] = "<|>&;()";
+
+struct cmd* parse_cmd(char* buf) {
+    struct cmd* cmd;
+    cmd = malloc(sizeof *cmd);
+
+    return cmd;
 }
 
 void ezsh_loop(void) {
@@ -25,8 +31,8 @@ void ezsh_loop(void) {
         printf(2, "EZ$ ");
         memset(buf, 0, sizeof(buf));
         gets(buf, sizeof(buf));
-        printf(2, "%c\n", buf[0]);
-        wait();
+        printf(2, "\n%p\n", strchr(buf, ' '));
+        //wait();
     }
 }
 
