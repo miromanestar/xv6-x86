@@ -46,32 +46,43 @@ struct cmd* parse_cmd(const char* buf) {
     }
 
     cmd->argc = arg;
+
     return cmd;
 }
 
 void ezsh_loop(void) {
     static char buf[MAX_BUF_SIZE];
+    struct cmd* cmd;
 
     while (1) {
         printf(2, "EZ$ ");
         memset(buf, 0, sizeof(buf));
         gets(buf, sizeof(buf));
         
-        struct cmd* cmd = parse_cmd(buf);
-        exec(cmd->argv[0], cmd->argv);
-        /*
-        for (int i = 0; i < cmd->argc; i++)
-            printf(2, "%s ", cmd->argv[i]);
-        printf(2, "\n");
-        */
+        cmd = parse_cmd(buf);
+        
+        //Exit if user inputed "exit"
+        if ( strcmp(cmd->argv[0], "exit") == 0)
+            break;
 
+        int pid = fork();
+        if (pid == 0) {
+            exec(cmd->argv[0], cmd->argv);
+        } else {
+            wait();
+        }
 
-        //Free each individual item in struct
-        //wait();
     }
+
+    //Free memory after exit
+    for (int i = 0; i < cmd->argc; i++) //Free arg arrays
+        free(cmd->argv[i]);
+    free(cmd->argv); //Free pointer to args
+    free(cmd); //Free cmd struct
 }
 
 int main(int argc, char **argv) {
     
     ezsh_loop();
+    exit();
 }
