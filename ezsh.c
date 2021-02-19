@@ -12,7 +12,6 @@
 
 //A simple struct to allow me to more easily pass a command into exec & fork
 struct cmd {
-  char* c;
   char** argv;
   int argc;
 };
@@ -30,23 +29,20 @@ int isSpace(const char c) {
 struct cmd* parse_cmd(const char* buf) {
     struct cmd* cmd;
     cmd = malloc(sizeof (struct cmd));
-    cmd->c = malloc(100 * sizeof (char));
     cmd->argv = malloc(10 * sizeof (char*));
     cmd->argv[0] = malloc(30 * sizeof (char));
 
     int arg = 0;
+    int offset = 0;
     for (int i = 0; buf[i]; i++) {
         if (isSpace(buf[i])) {
             arg++;
-            cmd->argv[arg] = malloc(30 * sizeof (char)); 
-            continue;
-        }
-        if (arg == 0) {
-            cmd->c[i] = buf[i];
+            cmd->argv[arg] = malloc(30 * sizeof (char));
+            offset = i + 1;
             continue;
         }
 
-        cmd->argv[arg][i] = buf[i];
+        cmd->argv[arg][i - offset] = buf[i];
     }
 
     cmd->argc = arg;
@@ -62,11 +58,13 @@ void ezsh_loop(void) {
         gets(buf, sizeof(buf));
         
         struct cmd* cmd = parse_cmd(buf);
-        
-        printf(2, cmd->c);
+        exec(cmd->argv[0], cmd->argv);
+        /*
+        for (int i = 0; i < cmd->argc; i++)
+            printf(2, "%s ", cmd->argv[i]);
+        printf(2, "\n");
+        */
 
-        for (int i = 1; i < cmd->argc; i++)
-            printf(2, "%s\n", cmd->argv[i]);
 
         //Free each individual item in struct
         //wait();
