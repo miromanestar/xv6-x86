@@ -78,8 +78,6 @@ void ezsh_loop(void) {
         printf(2, "%d | EZ$ ", cmdc);
         memset(buf, 0, sizeof(buf));
         gets(buf, sizeof(buf));
-        
-        printf(2, "%s\n", buf);
 
         cmd = parse_cmd(buf);
         
@@ -118,6 +116,8 @@ void ezsh_loop(void) {
             strcpy(b_arg, cmd->argv[0]);
             memset(b_arg + (strlen(b_arg) - 1), '\0', 1);
             ezsh_exec(b_arg, cmd->argv, 1);
+            write(0, buf, sizeof(buf)); 
+
             continue;
         }
         
