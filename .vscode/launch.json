@@ -5,13 +5,11 @@
             "type": "gdb",
             "request": "attach",
             "name": "launch gdb xv6",
-            "executable": "./kernel",
+            "executable": "kernel/kernel",
             "target": "localhost:26000",
             "remote": true,
             "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /root ."
-              ]
+
         },
     ]
 }
