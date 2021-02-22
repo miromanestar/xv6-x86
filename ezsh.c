@@ -12,7 +12,7 @@
 #define MAX_ARGS 10
 #define ARG_LEN 30
 
-void ezsh_exec(char *, char **, int);
+int ezsh_exec(char *, char **, int);
 
 //A simple struct to allow me to more easily pass a command into exec & fork
 struct cmd {
@@ -62,6 +62,10 @@ struct cmd* parse_cmd(const char* buf) {
     }
 
     cmd->argc = arg;
+    
+    //Get rid of extra empty args so commands aren't given empty args
+    for (int i = arg; i < MAX_ARGS; i++)
+        cmd->argv[i] = '\0';
 
     return cmd;
 }
@@ -111,13 +115,16 @@ void ezsh_loop(void) {
             while (cmd->argv[0][0] == '#')
                 cmd = history[ atoi(cmd->argv[0] + 1) ];
         }
-        if ( strlen(cmd->argv[0]) - (strchr(cmd->argv[0], '&') - cmd->argv[0]) == 1 ) {
+
+        //If command ends with a &
+        if ( cmd->argv[0][strlen(cmd->argv[0]) - 1] == '&' ) {
+            //b_arg is command stripped of the &
+            //because I don't want to modify original input for history integrity
             char* b_arg = malloc(ARG_LEN * sizeof *cmd->argv);
             strcpy(b_arg, cmd->argv[0]);
             memset(b_arg + (strlen(b_arg) - 1), '\0', 1);
-            ezsh_exec(b_arg, cmd->argv, 1);
-            write(0, buf, sizeof(buf)); 
 
+            ezsh_exec(b_arg, cmd->argv, 1);
             continue;
         }
         
@@ -136,18 +143,21 @@ void ezsh_loop(void) {
     free(history);
 }
 
-void ezsh_exec(char* arg, char** argv, int type) {
+int ezsh_exec(char* arg, char** argv, int type) {
     //Only run argumet if is child process (PID == 0)
-    if (fork() == 0)
+    if (fork() == 0) {
         exec(arg, argv);
+        printf(2, "exec %s failed\n", argv[0]);
+        exit();
+    }
 
     //If the program is supposed to run in the foreground
     else if (type == 0)
         wait();
+    return 0;
 }
 
 int main(int argc, char **argv) {
-
     ezsh_loop();
     exit();
 }
