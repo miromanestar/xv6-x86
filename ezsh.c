@@ -28,6 +28,8 @@ struct cmd {
 
 char whitespace[] = " \t\r\n\v";
 
+//CD must be built into shell because it changes the state of the shell (Working directory)
+//and child processes cannot change the state of the the shell (I.e. from exec)
 int ezsh_cd(char **args) {
     if (args[1] == 0) {
         printf(2, "cd: Missing arguments\nUsage: cd path\n");
@@ -112,9 +114,6 @@ void ezsh_loop(void) {
         //Exit if user inputed "exit"
         if ( strcmp(cmd->argv[0], "exit") == 0) {
             break;
-
-        //CD must be built into shell because it changes the state of the shell (Working directory)
-        //and child processes cannot change the state of the the shell (I.e. from exec)
         } else if ( strcmp(cmd->argv[0], "cd") == 0) {
             ezsh_cd(cmd->argv);
             continue;
