@@ -112,9 +112,7 @@ void ezsh_loop(void) {
         //Exit if user inputed "exit"
         if ( strcmp(cmd->argv[0], "exit") == 0)
             break;
-        else if ( is_space(cmd->argv[0][0]) ) {
-            printf(2, "Please remove extra whitespace");
-            continue;
+            
         //CD must be built into shell because it changes the state of the shell (Working directory)
         //and child processes cannot change the state of the the shell (I.e. from exec)
         } else if ( strcmp(cmd->argv[0], "cd") == 0) {
