@@ -148,6 +148,14 @@ void ezsh_exec(char* arg, char** argv, int type) {
 
 int main(int argc, char **argv) {
 
+    int fd;
+    while ( (fd = open("console", O_RDWR)) >= 0) {
+        if (fd >= 3) {
+            close(fd);
+            break;
+        }
+    }
+
     ezsh_loop();
     exit();
 }
