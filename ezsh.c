@@ -110,9 +110,9 @@ void ezsh_loop(void) {
         cmdc++;
 
         //Exit if user inputed "exit"
-        if ( strcmp(cmd->argv[0], "exit") == 0)
+        if ( strcmp(cmd->argv[0], "exit") == 0) {
             break;
-            
+
         //CD must be built into shell because it changes the state of the shell (Working directory)
         //and child processes cannot change the state of the the shell (I.e. from exec)
         } else if ( strcmp(cmd->argv[0], "cd") == 0) {
