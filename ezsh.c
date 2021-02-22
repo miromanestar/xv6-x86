@@ -111,7 +111,7 @@ void ezsh_loop(void) {
         history[cmdc] = cmd;
         cmdc++;
 
-        //Exit if user inputed "exit"
+        //Checks for built-in functions of ezsh
         if ( strcmp(cmd->argv[0], "exit") == 0) {
             break;
         } else if ( strcmp(cmd->argv[0], "cd") == 0) {
