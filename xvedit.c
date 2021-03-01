@@ -8,8 +8,8 @@
 #include "stat.h"
 #include "user.h"
 
-int read_file(char*, char*);
 int main(int, char**);
+int read_file(char*, char*);
 
 int main(int argc, char **argv) {
     static char inBuf[100]; //Input buffer
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
         exit();
     }
 
-    printf(2, "Welcome to the xv6 Editor!");
+    printf(2, "Welcome to the xv6 Editor!\n");
     fd = read_file(fBuf, argv[1]);
     
     //Begin primary loop

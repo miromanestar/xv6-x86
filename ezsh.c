@@ -167,7 +167,6 @@ int ezsh_exec(char* arg, char** argv, int type) {
 }
 
 int main(int argc, char **argv) {
-<<<<<<< HEAD
 
     int fd;
     while ( (fd = open("console", O_RDWR)) >= 0) {
@@ -177,8 +176,6 @@ int main(int argc, char **argv) {
         }
     }
 
-=======
->>>>>>> 094cbd19a4918e4a3a5c274a1118a5f20309e758
     ezsh_loop();
     exit();
 }
