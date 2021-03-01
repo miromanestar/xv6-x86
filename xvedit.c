@@ -9,12 +9,22 @@
 #include "user.h"
 
 int main(int, char**);
-int read_file(char*, char*);
+int read_file(List*, char*);
+
+typedef struct Line {
+    char *line;
+    Line *next;
+} Line;
+
+typedef struct List {
+    Line* head;
+    int count;
+} List;
 
 int main(int argc, char **argv) {
     static char inBuf[100]; //Input buffer
-    static char fBuf[512]; //File buffer
     int fd; //Reference to open file
+    List *file = malloc(sizeof *file); //File data
 
     if (argc < 2) {
         printf(1, "Error: xvEdit only accepts one argument");
@@ -22,7 +32,7 @@ int main(int argc, char **argv) {
     }
 
     printf(2, "Welcome to the xv6 Editor!\n");
-    fd = read_file(fBuf, argv[1]);
+    fd = read_file(file, argv[1]);
     
     //Begin primary loop
     while (1) {
@@ -34,7 +44,8 @@ int main(int argc, char **argv) {
     close(fd);
 }
 
-int readFile(char *buf, char *file) {
+int read_file(List *list, char *file) {
+    char *buf[512];
     int fd; //File descriptor (Reference to opened file)
 
     //Open file and print error message if it cannot be opened
@@ -45,6 +56,8 @@ int readFile(char *buf, char *file) {
 
     /*
         Perhaps try reading in line by line rather than all at once?
+        A linked list struct each containing a line might be a better
+        solution
     */
 
     int n; //Current char from file
@@ -52,6 +65,10 @@ int readFile(char *buf, char *file) {
         if ( write(1, buf, n) != n ) {
             printf(1, "xvEdit: write error\n");
             exit();
+        }
+
+        if ( (char) n == '\n') {
+
         }
     }
 
