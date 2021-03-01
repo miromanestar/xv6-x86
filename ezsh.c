@@ -9,10 +9,16 @@
 #include "fcntl.h"
 
 #define MAX_BUF_SIZE 100
-#define MAX_ARGS 10
+#define MAX_ARGS 25
 #define ARG_LEN 30
 
-void ezsh_exec(char *, char **, int);
+//Forward declarations
+int ezsh_cd(char**);
+int is_space(const char);
+struct cmd* parse_cmd(const char*);
+void ezsh_loop(void);
+int ezsh_exec(char *, char **, int);
+int main(int, char**);
 
 //A simple struct to allow me to more easily pass a command into exec & fork
 struct cmd {
@@ -21,8 +27,9 @@ struct cmd {
 };
 
 char whitespace[] = " \t\r\n\v";
-char symbols[] = "<|>&;()";
 
+//CD must be built into shell because it changes the state of the shell (Working directory)
+//and child processes cannot change the state of the the shell (I.e. from exec)
 int ezsh_cd(char **args) {
     if (args[1] == 0) {
         printf(2, "cd: Missing arguments\nUsage: cd path\n");
@@ -35,25 +42,28 @@ int ezsh_cd(char **args) {
     return 1;
 }
 
-int isSpace(const char c) {
+//Returns 1 if arg1 is included in the whitespace string
+int is_space(const char c) {
     if ( strchr(whitespace, c) == 0 )
         return 0;
     else
         return 1;
 }
 
+//Parses the command into a struct to be passed into exec
 struct cmd* parse_cmd(const char* buf) {
     struct cmd* cmd;
     cmd = malloc(sizeof *cmd);
     cmd->argv = malloc(MAX_ARGS * sizeof cmd->argv);
     cmd->argv[0] = malloc(ARG_LEN * sizeof *cmd->argv);
 
-    int arg = 0;
-    int offset = 0;
+    int arg = 0; //Keeps track of arg currently being parsed
+    int offset = 0; //Track index when whitespace was last encountered in buffer
     for (int i = 0; buf[i]; i++) {
-        if (isSpace(buf[i])) {
+        if (is_space(buf[i])) {
             arg++;
-            cmd->argv[arg] = malloc(30 * sizeof (char));
+
+            cmd->argv[arg] = malloc(30 * sizeof (char)); //Double allocated space if more args are needed
             offset = i + 1;
             continue;
         }
@@ -62,6 +72,10 @@ struct cmd* parse_cmd(const char* buf) {
     }
 
     cmd->argc = arg;
+    
+    //Get rid of extra empty args so commands aren't given empty args
+    for (int i = arg; i < MAX_ARGS; i++)
+        cmd->argv[i] = '\0';
 
     return cmd;
 }
@@ -72,20 +86,22 @@ void ezsh_loop(void) {
 
     int histLength = 2;
     struct cmd** history = malloc(histLength * sizeof cmd);
-    int cmdc = 0;
+    int cmdc = 0; //Keep count of curent number of commands
 
     while (1) {
         printf(2, "%d | EZ$ ", cmdc);
-        memset(buf, 0, sizeof(buf));
-        gets(buf, sizeof(buf));
+        memset(buf, 0, sizeof(buf)); //Clear input buffer
+        gets(buf, sizeof(buf)); //Fill buffer with input for sizeof(buf) chars
 
         cmd = parse_cmd(buf);
         
+        //Reallocate more space to history if needed
         if (cmdc >= histLength - 1) {
             histLength *= 2;
-            struct cmd** temp = history;
-            history = malloc(histLength * sizeof cmd);
+            struct cmd** temp = history; //Store history in temporary pointer
+            history = malloc(histLength * sizeof cmd); //Point history to newly allocated memory
             
+            //Copy from old history pointer to new history pointer
             for (int i = 0; i < histLength/2; i++)
                 history[i] = temp[i];
 
@@ -95,14 +111,9 @@ void ezsh_loop(void) {
         history[cmdc] = cmd;
         cmdc++;
 
-        //Exit if user inputed "exit"
-        if ( strcmp(cmd->argv[0], "exit") == 0)
+        //Checks for built-in functions of ezsh
+        if ( strcmp(cmd->argv[0], "exit") == 0) {
             break;
-        else if ( isSpace(cmd->argv[0][0]) ) {
-            printf(2, "Please remove extra whitespace");
-            continue;
-        //CD must be built into shell because it changes the state of the shell (Working directory)
-        //and child processes cannot change the state of the the shell (I.e. from exec)
         } else if ( strcmp(cmd->argv[0], "cd") == 0) {
             ezsh_cd(cmd->argv);
             continue;
@@ -111,13 +122,16 @@ void ezsh_loop(void) {
             while (cmd->argv[0][0] == '#')
                 cmd = history[ atoi(cmd->argv[0] + 1) ];
         }
-        if ( strlen(cmd->argv[0]) - (strchr(cmd->argv[0], '&') - cmd->argv[0]) == 1 ) {
+
+        //If command ends with a &
+        if ( cmd->argv[0][strlen(cmd->argv[0]) - 1] == '&' ) {
+            //b_arg is argv[0] stripped of the &
+            //because I don't want to modify original input that's saved in the history
             char* b_arg = malloc(ARG_LEN * sizeof *cmd->argv);
             strcpy(b_arg, cmd->argv[0]);
             memset(b_arg + (strlen(b_arg) - 1), '\0', 1);
-            ezsh_exec(b_arg, cmd->argv, 1);
-            write(0, buf, sizeof(buf)); 
 
+            ezsh_exec(b_arg, cmd->argv, 1);
             continue;
         }
         
@@ -136,17 +150,24 @@ void ezsh_loop(void) {
     free(history);
 }
 
-void ezsh_exec(char* arg, char** argv, int type) {
+int ezsh_exec(char* arg, char** argv, int type) {
     //Only run argumet if is child process (PID == 0)
-    if (fork() == 0)
+    if (fork() == 0) {
         exec(arg, argv);
 
+        //If exec fails, we need to kill the child process.
+        printf(2, "exec %s failed\n", argv[0]);
+        exit();
+    }
+
     //If the program is supposed to run in the foreground
-    else if (type == 0)
+    if (type == 0)
         wait();
+    return 0;
 }
 
 int main(int argc, char **argv) {
+<<<<<<< HEAD
 
     int fd;
     while ( (fd = open("console", O_RDWR)) >= 0) {
@@ -156,6 +177,8 @@ int main(int argc, char **argv) {
         }
     }
 
+=======
+>>>>>>> 094cbd19a4918e4a3a5c274a1118a5f20309e758
     ezsh_loop();
     exit();
 }
