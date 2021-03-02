@@ -4,7 +4,7 @@
 #include "user.h"
 #include "x86.h"
 
-//Copies the array of chars to arg2 from arg2
+//Copies the array of chars to arg1 from arg2
 char*
 strcpy(char *s, const char *t)
 {
