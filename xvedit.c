@@ -76,7 +76,9 @@ void parse_input(char *buf, List *file) {
         case 'F': break;
         case 'L': list(args[1], file); break;
         case 'H': help(argc, args); break;
-        default: break;
+        default:
+            printf(1, "Invalid command. Type HELP for help on commands.\n");
+            break;
     }
 }
 
@@ -89,28 +91,30 @@ void end(char *text, List *file) {
     ln->prev = file->end;
     file->end->next = ln;
     file->end = ln;
-
-    printf(2, "%s", file->end->line);
-    print_list(file);
 }
 
 void list(char *range, List *file) {
-    int start, end;
-    if (range[0] == ':') {
-        start = 0;
-    } else if (range[strlen(range) - 1] == ':') {
-        end = list_len(file);
-    } else {
-        // '0' starts at 48 in ASCII, lets do conversions!
-        start = 1;
-        end = 3;
-    }
+    int start = 0;
+    int end = list_len(file);
 
+    //Replace ':' with '\0' to split the string into two
+    char* tempAddr = strchr(range, ':');
+    *tempAddr = '\0';
+    char* range2 = tempAddr + 1;
+
+    //Assign range if it's not just a ':'
+    if (range[0] != ':')
+        start = atoi(range);
+    if (range2[0] != ':')
+        end = atoi(range2);
+
+    //Print out the chosen range
     int i = 1;
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
         if (i >= start && i <= end) {
             printf(2, "%s", ln->line);
             int space = 80 - strlen(ln->line);
+
             for (int j = 0; j < space; j++)
                 printf(2, " ");
             printf(2, "%d", i);
