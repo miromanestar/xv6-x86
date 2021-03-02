@@ -223,7 +223,7 @@ int confirm() {
         memset(buf, 0, sizeof buf);
         gets(buf, sizeof buf);
 
-       buf[0] = toupper(buf[0]);
+        buf[0] = toupper(buf[0]);
 
         if (buf[0] == 'Y')
             return 1;
