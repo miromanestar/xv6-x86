@@ -62,10 +62,19 @@ void parse_input(char *buf, List *file) {
         }
     }
 
+
+    //Remove newline at the end of the input
+    *(strchr(args[argc - 1], '\n')) = '\0';
+
     //Clear out the last quotation mark if the user included one
     int len = strlen(args[argc - 1]);
     if (args[argc - 1][len - 2] == '"')
         args[argc - 1][len - 2] = '\0';
+    
+    //Remove '"' from end of input if it is indeed there
+    char* temp = strchr(args[argc - 1], '"');
+    if (temp)
+        *temp = '\0';
 
     switch (toupper(args[0][0])) {
         case 'Q': quit(); break;
