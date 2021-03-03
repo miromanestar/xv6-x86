@@ -23,6 +23,7 @@ typedef struct List {
 //Commands functions
 void parse_input(char *buf, List *file);
 void end(char *text, List *file);
+void add(char *line_num, char* text, List *file);
 void list(char *range, List *file);
 void quit();
 
@@ -49,15 +50,14 @@ void parse_input(char *buf, List *file) {
         //If argument begins with a ", ignore whitespace (Also remove the ")
         if (buf[i] == '"' && buf[i - 1] == '\0') {
             isClosed = 1;
-            buf[i] = '\n';
-            //args[argc - 1] = &buf[i + 1];
+            args[argc - 1] = buf + i + 1;
             continue;
         }
 
         //If whitespace found, it's a new argument unless its in quotes
         if (buf[i] == ' ' && !isClosed) {
             buf[i] = '\0';
-            args[argc] = &buf[i + 1];
+            args[argc] = buf + i + 1;
             argc++; 
         }
     }
@@ -66,11 +66,11 @@ void parse_input(char *buf, List *file) {
     int len = strlen(args[argc - 1]);
     if (args[argc - 1][len - 2] == '"')
         args[argc - 1][len - 2] = '\0';
-    
+
     switch (toupper(args[0][0])) {
         case 'Q': quit(); break;
         case '@': end(args[1], file); break;
-        case 'A': break;
+        case 'A': add(args[1], args[2], file); break;
         case 'D': break;
         case 'E': break;
         case 'F': break;
@@ -91,6 +91,39 @@ void end(char *text, List *file) {
     ln->prev = file->end;
     file->end->next = ln;
     file->end = ln;
+
+    file->count++;
+}
+
+//Adds whats in *text as a new line before *line_num
+void add(char *line_num, char* text, List *file) {
+    int i = 1;
+    int num = atoi(line_num);
+    //printf(2, "%s\n", text);
+    for (Node *ln = file->head; ln != 0; ln = ln->next) {
+        if (i + 1 == num || num == 1) {
+            Node *newln = malloc(sizeof *newln);
+            newln->line = malloc((strlen(text) + 1) * sizeof (char));
+            strcpy(newln->line, text);
+
+            //Need separate logic for inserting at the beginning
+            if (num == 1) {
+                newln->next = file->head;
+                newln->next->prev = newln;
+                file->head = newln;
+            } else {
+                newln->next = ln->next;
+                newln->prev = ln;
+
+                ln->next = newln;
+                newln->next->prev = newln;
+            }
+            file->count++;
+            return;
+        }
+
+        i++;
+    }
 }
 
 void list(char *range, List *file) {
@@ -122,11 +155,9 @@ void list(char *range, List *file) {
 
             //Print out right-aligned line numbers
             int space = 80 - strlen(ln->line);
-            if (i == 1)
-                space -= 1;
             for (int j = 0; j < space; j++)
                 printf(2, " ");
-            printf(2, "%d", i);
+            printf(2, "%d\n", i);
         }
         i++;
     }
@@ -207,6 +238,10 @@ int read_file(List *list, char *file) {
             ln->line = malloc((i - offset + 1) * sizeof (char) );
             memset(ln->line, 0, i - offset + 1); //Clear out junk data
             memmove(ln->line, tempBuf + offset, i - offset); //Fill in line with snippet from tempBuf
+            
+            //Remove newline characters from the beginning of the line
+            if (ln->line[0] == '\n')
+                ln->line += 1;
 
             //Enter line node into linked list
             ln->prev = *prev_line;
