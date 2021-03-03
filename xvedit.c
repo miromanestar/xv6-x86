@@ -119,6 +119,8 @@ void list(char *range, List *file) {
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
         if (i >= start && i <= end) {
             printf(2, "%s", ln->line);
+
+            //Print out right-aligned line numbers
             int space = 80 - strlen(ln->line);
             if (i == 1)
                 space -= 1;
@@ -133,8 +135,8 @@ void list(char *range, List *file) {
 
 void quit() {
     printf(2, "Save changes?");
-    if (confirm())
-        exit();
+    confirm();
+    exit();
 }
 
 
@@ -216,6 +218,8 @@ int read_file(List *list, char *file) {
         }
     }
 
+    free(tempBuf);
+    free(buf);
     if (n < 0) {
         printf(1, "xvEdit: read error\n");
         exit();
