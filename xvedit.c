@@ -94,27 +94,34 @@ void end(char *text, List *file) {
 }
 
 void list(char *range, List *file) {
+    if (range[0] == '\0' || range[0] == '\n') {
+        printf(1, "Invalid range. Please enter range in end:start format\n");
+        return;
+    }
+
     int start = 0;
     int end = list_len(file);
 
+    *(strchr(range, '\n')) = '\0';
     //Replace ':' with '\0' to split the string into two
     char* tempAddr = strchr(range, ':');
     *tempAddr = '\0';
     char* range2 = tempAddr + 1;
 
-    //Assign range if it's not just a ':'
-    if (range[0] != ':')
+    //Assign range if it'l :s not just a ':'
+    if (range[0] != '\0')
         start = atoi(range);
-    if (range2[0] != ':')
+    if (range2[0] != '\0')
         end = atoi(range2);
-
+    
     //Print out the chosen range
     int i = 1;
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
         if (i >= start && i <= end) {
             printf(2, "%s", ln->line);
             int space = 80 - strlen(ln->line);
-
+            if (i == 1)
+                space -= 1;
             for (int j = 0; j < space; j++)
                 printf(2, " ");
             printf(2, "%d", i);
@@ -194,8 +201,8 @@ int read_file(List *list, char *file) {
             //Allocate space and store line in line node, only provide exactly as much
             //space as needed
             Node *ln = malloc(sizeof *ln);
-            ln->line = malloc((i - offset) * sizeof (char) );
-            memset(ln->line, 0, strlen(ln->line)); //Clear out junk data
+            ln->line = malloc((i - offset + 1) * sizeof (char) );
+            memset(ln->line, 0, i - offset + 1); //Clear out junk data
             memmove(ln->line, tempBuf + offset, i - offset); //Fill in line with snippet from tempBuf
 
             //Enter line node into linked list
