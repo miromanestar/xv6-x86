@@ -195,6 +195,7 @@ int read_file(List *list, char *file) {
         memmove(tempBuf + (totalN - n), buf, n);
         free(temp);
     }
+    free(buf);
 
     Node **prev_line = &list->head;
     int offset = 0;
@@ -219,7 +220,7 @@ int read_file(List *list, char *file) {
     }
 
     free(tempBuf);
-    free(buf);
+    
     if (n < 0) {
         printf(1, "xvEdit: read error\n");
         exit();
