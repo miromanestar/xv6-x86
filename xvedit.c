@@ -24,6 +24,7 @@ typedef struct List {
 void parse_input(char *buf, List *file);
 void end(char *text, List *file);
 void add(char *line_num, char* text, List *file);
+void drop(char *range, List *file);
 void list(char *range, List *file);
 void quit();
 
@@ -37,6 +38,7 @@ char toupper(char s);
 void help(int argc, char **args);
 void print_list(List *file);
 int list_len(List *ls);
+int* parse_range(char *range, List *file);
 
 void parse_input(char *buf, List *file) {
     //Replace whitespace with \0 to turn buffer into an 'array' of chars
@@ -80,7 +82,7 @@ void parse_input(char *buf, List *file) {
         case 'Q': quit(); break;
         case '@': end(args[1], file); break;
         case 'A': add(args[1], args[2], file); break;
-        case 'D': break;
+        case 'D': drop(args[1], file); break;
         case 'E': break;
         case 'F': break;
         case 'L': list(args[1], file); break;
@@ -135,26 +137,35 @@ void add(char *line_num, char* text, List *file) {
     }
 }
 
-void list(char *range, List *file) {
-    if (range[0] == '\0' || range[0] == '\n') {
-        printf(1, "Invalid range. Please enter range in end:start format\n");
-        return;
+void drop(char *range, List *file) {
+    int *ranges = parse_range(range, file);
+    int start = ranges[0];
+    int end = ranges[1];
+    free(ranges);
+
+    Node *startNode = 0;
+    int i = 1;
+    for (Node *ln = file->head; ln != 0; ln = ln->next) {
+        if (i == start - 1) {
+            startNode = ln;
+            printf(2, "%s\n", startNode->line);
+        } else if (i >= start && i <= end) {
+            //free(ln->line);
+            //free(ln);
+            file->count--;
+        } else if (i == end + 1) {
+            startNode->next = ln;
+            printf(2, "%s\n", ln->line);
+        }
+        i++;
     }
+}
 
-    int start = 0;
-    int end = list_len(file);
-
-    *(strchr(range, '\n')) = '\0';
-    //Replace ':' with '\0' to split the string into two
-    char* tempAddr = strchr(range, ':');
-    *tempAddr = '\0';
-    char* range2 = tempAddr + 1;
-
-    //Assign range if it'l :s not just a ':'
-    if (range[0] != '\0')
-        start = atoi(range);
-    if (range2[0] != '\0')
-        end = atoi(range2);
+void list(char *range, List *file) {
+    int *ranges = parse_range(range, file);
+    int start = ranges[0];
+    int end = ranges[1];
+    free(ranges);
     
     //Print out the chosen range
     int i = 1;
@@ -357,4 +368,35 @@ int list_len(List *ls) {
     for (Node *ln = ls->head; ln != 0; ln = ln->next)
         count++;
     return count;
+}
+
+int* parse_range(char *range, List *file) {
+    static int ranges[2];
+    ranges[0] = -1;
+    ranges[1] = -1;
+
+    if (range[0] == '\0' || range[0] == '\n') {
+        printf(1, "Invalid range. Please enter range in end:start format\n");
+        return ranges;
+    }
+
+    int start = 0;
+    int end = list_len(file);
+
+    *(strchr(range, '\n')) = '\0';
+    //Replace ':' with '\0' to split the string into two
+    char* tempAddr = strchr(range, ':');
+    *tempAddr = '\0';
+    char* range2 = tempAddr + 1;
+
+    //Assign range if it'l :s not just a ':'
+    if (range[0] != '\0')
+        start = atoi(range);
+    if (range2[0] != '\0')
+        end = atoi(range2);
+
+    ranges[0] = start;
+    ranges[1] = end;
+
+    return ranges;
 }
