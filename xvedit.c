@@ -7,6 +7,7 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+#include "fcntl.h"
 
 typedef struct Node {
     char *line;
@@ -18,19 +19,22 @@ typedef struct List {
     int count;
     struct Node *head;
     struct Node *end;
+    char *name;
 } List;
 
 //Commands functions
 void parse_input(char *buf, List *file);
+void find(char *text, List *file);
+void edit(char *range, char *text, List *file);
 void end(char *text, List *file);
 void add(char *line_num, char* text, List *file);
 void drop(char *range, List *file);
 void list(char *range, List *file);
-void quit();
+void quit(List *file);
 
 //Primary functions
 int main(int argc, char **argv);
-int read_file(List *list, char *file);
+void read_file(List *list, char *file);
 
 //Utility functions
 int confirm();
@@ -39,6 +43,9 @@ void help(int argc, char **args);
 void print_list(List *file);
 int list_len(List *ls);
 int* parse_range(char *range, List *file);
+
+//Counts the number of edits made to a file
+int editCount;
 
 void parse_input(char *buf, List *file) {
     //Replace whitespace with \0 to turn buffer into an 'array' of chars
@@ -64,7 +71,6 @@ void parse_input(char *buf, List *file) {
         }
     }
 
-
     //Remove newline at the end of the input
     *(strchr(args[argc - 1], '\n')) = '\0';
 
@@ -79,18 +85,88 @@ void parse_input(char *buf, List *file) {
         *temp = '\0';
 
     switch (toupper(args[0][0])) {
-        case 'Q': quit(); break;
+        case 'Q': quit(file); break;
         case '@': end(args[1], file); break;
         case 'A': add(args[1], args[2], file); break;
         case 'D': drop(args[1], file); break;
-        case 'E': break;
-        case 'F': break;
+        case 'E': edit(args[1], args[2], file); break;
+        case 'F': find(args[1], file); break;
         case 'L': list(args[1], file); break;
         case 'H': help(argc, args); break;
         default:
             printf(1, "Invalid command. Type HELP for help on commands.\n");
             break;
     }
+}
+
+void find(char *text, List *file) {
+    int found_arr[list_len(file)];
+    int found_count = 0;
+
+    int i = 1;
+    for (Node *ln = file->head; ln != 0; ln = ln->next) {
+        for (int k = 0; ln->line[k]; k++) {
+            if (ln->line[k] == text[0]) {
+                int found = 1;
+                for (int f = 0; text[f]; f++) {
+                    if (text[f] == ln->line[k + f])
+                        continue;
+                    found = 0;
+                }
+                if (found) {
+                    found_arr[found_count] = i;
+                    found_count++;
+                }
+            }
+        }
+        i++;
+    }
+
+    if (found_count == 0) {
+        printf(2, "%s is not found in this file.\n", text);
+        return;
+    }
+
+    printf(2, "%s is found on line%s", text, found_count > 1 ? "s " : " ");
+    for (int j = 0; j < found_count; j++)
+        printf(2, "%d%s", found_arr[j], j + 1 == found_count ? "\n" : ", ");
+}
+
+void edit(char *range, char *text, List *file) {
+    if (file->count <= 0) {
+        printf(1, "Error: File is empty.\n");
+        return;
+    }
+
+    int *ranges = parse_range(range, file);
+    int start = ranges[0];
+    int end = ranges[1];
+
+    Node *newLn = malloc(sizeof *newLn);
+    newLn->line = malloc((strlen(text) + 1) * sizeof (char));
+    file->count++;
+    strcpy(newLn->line, text);
+
+    int i = 1;
+    Node *startNode = 0;
+    for (Node *ln = file->head; ln != 0; ln = ln->next) {
+        if (i == 1 && start == 1) {
+            file->head = newLn;
+        } else if (i == start - 1) {
+            startNode = ln;
+        } else if (i >= start && i <= end) {
+            free(ln->line);
+            free(ln);
+            file->count--;
+        } else if (i == end + 1) {
+            startNode->next = newLn;
+            newLn->next = ln;
+        }
+
+        i++;
+    }
+
+    editCount++;
 }
 
 //Appends a new line to the end of the linked list
@@ -104,10 +180,13 @@ void end(char *text, List *file) {
     file->end = ln;
 
     file->count++;
+
+    editCount++;
 }
 
 //Adds whats in *text as a new line before *line_num
 void add(char *line_num, char* text, List *file) {
+    editCount++;
     int i = 1;
     int num = atoi(line_num);
     //printf(2, "%s\n", text);
@@ -138,35 +217,52 @@ void add(char *line_num, char* text, List *file) {
 }
 
 void drop(char *range, List *file) {
+    if (file->count <= 0) {
+        printf(1, "Error: File is empty.\n");
+        return;
+    }
+
     int *ranges = parse_range(range, file);
     int start = ranges[0];
     int end = ranges[1];
-    free(ranges);
 
-    Node *startNode = 0;
+    printf(2, "Drop %d lines?", end - start + 1);
+    if (!confirm())
+        return;
+
     int i = 1;
+    Node *startNode = 0;
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
-        if (i == start - 1) {
+        if (start == 1 && i == end + 1) {
+            file->head = ln;
+            break;
+        } else if (i == start - 1) {
             startNode = ln;
-            printf(2, "%s\n", startNode->line);
         } else if (i >= start && i <= end) {
-            //free(ln->line);
-            //free(ln);
+            free(ln->line);
+            free(ln);
             file->count--;
         } else if (i == end + 1) {
             startNode->next = ln;
-            printf(2, "%s\n", ln->line);
+            break;
         }
         i++;
     }
+
+    printf(2, "%d lines dropped\n", end - start + 1);
+    editCount++;
 }
 
 void list(char *range, List *file) {
     int *ranges = parse_range(range, file);
     int start = ranges[0];
     int end = ranges[1];
-    free(ranges);
-    
+
+    if (file->count <= 0) {
+        printf(1, "Error: File is empty.\n");
+        return;
+    }
+
     //Print out the chosen range
     int i = 1;
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
@@ -184,17 +280,43 @@ void list(char *range, List *file) {
     printf(2, "\n");
 }
 
-void quit() {
+void quit(List *file) {
+    //Just exit if the number of edits are zero
+    if (editCount == 0)
+        exit();
+
     printf(2, "Save changes?");
-    confirm();
+    if (confirm()) {
+        int fd;
+        if ( (fd = open(file->name, O_CREATE | O_WRONLY)) < 0) {
+            printf(2, "Could not write to %s", file->name);
+            exit();
+        }
+
+        for (Node *ln = file->head; ln != 0; ln = ln->next) {
+            int len = strlen(ln->line);
+            char *line = malloc( (len + 1) * sizeof *line);
+            strcpy(line, ln->line);
+            line[len] = '\n';
+            write(fd, line, len + 1);
+            free(line);
+        }
+
+        printf(2, "Changes saved\n");
+        close(fd);
+    } else {
+        printf(2, "Changes not saved\n");
+    }
+
     exit();
 }
 
 
 int main(int argc, char **argv) {
     static char inBuf[512]; //Input buffer
-    int fd; //Reference to open file
     List *file = malloc(sizeof *file); //File data
+    file->name = malloc(strlen(argv[1]) * sizeof (char));
+    strcpy(file->name, argv[1]);
 
     if (argc < 2) {
         printf(1, "Error: xvEdit requires one argument.\n");
@@ -202,7 +324,7 @@ int main(int argc, char **argv) {
     }
 
     printf(2, "Welcome to the xv6 Editor!\n");
-    fd = read_file(file, argv[1]);
+    read_file(file, argv[1]);
     
     //Begin primary loop
     while (1) {
@@ -211,13 +333,11 @@ int main(int argc, char **argv) {
         gets(inBuf, sizeof inBuf);
         parse_input(inBuf, file);
     }
-
-    close(fd);
 }
 
 //Breaks file down into a linked list where each node contains
 //data for each new line
-int read_file(List *list, char *file) {
+void read_file(List *list, char *file) {
     static char buf[512];
     int fd; //File descriptor (Reference to opened file)
 
@@ -283,7 +403,7 @@ int read_file(List *list, char *file) {
 
     printf(2, "%d lines read from %s\n", list->count, file);
 
-    return fd;
+    close(fd);
 }
 
 int confirm() {
@@ -386,6 +506,12 @@ int* parse_range(char *range, List *file) {
     *(strchr(range, '\n')) = '\0';
     //Replace ':' with '\0' to split the string into two
     char* tempAddr = strchr(range, ':');
+    if (!tempAddr) {
+        ranges[0] = atoi(range);
+        ranges[1] = atoi(range);
+        return ranges;
+    }
+
     *tempAddr = '\0';
     char* range2 = tempAddr + 1;
 
