@@ -606,6 +606,13 @@ int* parse_range(char *range, List *file) {
     ranges[0] = start;
     ranges[1] = end;
 
+    if (ranges[0] == 0 || ranges[1] == 0) {
+        printf(1, "Invalid range. Please enter a range in end:start format.\n");
+        ranges[0] = -1;
+        ranges[1] = -1;
+    }
+
+
     return ranges;
 }
 
