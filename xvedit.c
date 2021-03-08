@@ -1,7 +1,7 @@
 /*
     xv6 Editor
     CPTR 365 - Operating Systems
-    Miro Manestar | March 1, 2021
+    Miro Manestar | March 7, 2021
 */
 
 #include "types.h"
@@ -26,7 +26,7 @@ typedef struct List {
 void parse_input(char *buf, List *file);
 void find(char *text, List *file);
 void edit(char *range, char *text, List *file);
-void end(char *text, List *file);
+void end(char **textList, List *file);
 void add(char *line_num, char *text, List *file);
 void drop(char *range, List *file);
 void list(char *range, List *file);
@@ -44,6 +44,7 @@ void print_list(List *file);
 int list_len(List *ls);
 int* parse_range(char *range, List *file);
 int get_cmd(char *cmd);
+char* join_str(char **strgs);
 
 //Counts the number of edits made to a file
 int editCount;
@@ -60,7 +61,7 @@ char *cmd_doc[] = {
     "DROP *range*\nDelete lines in *range*",
     "EDIT *range* *text*\nReplace contents of *range* with text. Surround argument in "" to include everything inside",
     "FIND *text*\nDisplays the line numbers of lines containing *text*",
-    "LIST *range*\nDisplays the lines within range",
+    "LIST *range*\nDisplays the lines within range. No paramter will show whole list",
     "QUIT\nExits the editor after confirming whether to save changes",
     "HELP *command*\nLists usage of the specified command"
 };
@@ -90,7 +91,7 @@ void parse_input(char *buf, List *file) {
     *(strchr(args[argc - 1], '\n')) = '\0';
 
     switch (get_cmd(args[0])) {
-        case 0: end(args[1], file); break;
+        case 0: end(args, file); break;
         case 1: add(args[1], args[2], file); break;
         case 2: drop(args[1], file); break;
         case 3: edit(args[1], args[2], file); break;
@@ -102,6 +103,8 @@ void parse_input(char *buf, List *file) {
             printf(1, "Invalid command. Type HELP for help on commands.\n");
             break;
     }
+
+    free(args);
 }
 
 //Prints out a list of lines from file that include text
@@ -189,17 +192,27 @@ void edit(char *range, char *text, List *file) {
 }
 
 //Appends a new line to the end of the linked list
-void end(char *text, List *file) {
+void end(char **textList, List *file) {
+
+    //Since end is the only one who's first parameter can be separated by whitespace,
+    //just join the whole thing into one string!
+    char *text = join_str(&textList[1]);
+
+    if (file->count <= 0) {
+        add("1", text, file);
+        return;
+    }
+
     Node *ln = malloc(sizeof *ln);
     ln->line = malloc((strlen(text) + 1) * sizeof (char));
     strcpy(ln->line, text);
     
-    ln->prev = file->end;
     file->end->next = ln;
+    ln->prev = file->end;
+    ln->next = 0;
     file->end = ln;
 
     file->count++;
-
     editCount++;
 }
 
@@ -207,6 +220,20 @@ void end(char *text, List *file) {
 void add(char *line_num, char *text, List *file) {
     if (!line_num[0] || !text[0]) {
         printf(1,"Add: Missing arguments\n");
+        return;
+    }
+
+    //If file empty, just append it to the beginning
+    if (!file->count) {
+        Node *newln = malloc(sizeof *newln);
+        newln->line = malloc((strlen(text) + 1) * sizeof (char));
+        strcpy(newln->line, text);
+
+        newln->prev = 0;
+        newln->next = 0;
+        file->head = newln;
+        file->end = newln;
+        file->count++;
         return;
     }
 
@@ -237,7 +264,7 @@ void add(char *line_num, char *text, List *file) {
                 ln->next = newln;
                 newln->next->prev = newln;
             }
-            free(newln);
+
             file->count++;
             return;
         }
@@ -247,8 +274,10 @@ void add(char *line_num, char *text, List *file) {
 }
 
 //Inclusively drops the lines from file within range
+//Currently has several memory leaks, but calling free to free the old lines
+//and/or text causes a page fault...
 void drop(char *range, List *file) {
-    if (range[0] == '\0') {
+    if (!range[0]) {
         printf(1,"Drop: Missing arguments\n");
         return;
     } else if (file->count <= 0) {
@@ -270,34 +299,38 @@ void drop(char *range, List *file) {
         return;
 
     int i = 1;
+    Node *endNode = 0;
     Node *startNode = 0;
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
-        if (start == 1 && i == end + 1) {
-            file->head = ln;
-            break;
-        } else if (i == start - 1) {
-            startNode = ln;
-        } else if (i >= start && i <= end) {
-            free(ln->line);
-            free(ln);
-            file->count--;
-        } else if (i == end + 1) {
-            startNode->next = ln;
-            break;
+        if (i == start) {
+            if (start != 1)
+                startNode = ln->prev;
         }
+        
+        if (i == end) {
+            if (end != file->count)
+                endNode = ln->next;
+        }
+
         i++;
     }
 
-    printf(2, "%d %s dropped.\n", end - start + 1, end - start + 1 > 1 ? "lines" : "line");
+    startNode->next = endNode;
+    endNode->prev = startNode;
+
+    if (start == 1)
+        file->head = endNode;
+    if (end == file->count)
+        file->end = startNode;
+    
     editCount++;
+    file->count -= end - start + 1;
+    printf(2, "%d %s dropped (%d)\n", end - start + 1, end - start + 1 > 1 ? "lines" : "line", file->count);
 }
 
 //Lists the lines from file within the given range
 void list(char *range, List *file) {
-    if (!range[0]) {
-        printf(1,"List: Missing arguments\n");
-        return;
-    } else if (file->count <= 0) {
+    if (file->count <= 0) {
         printf(1, "List: File is empty\n");
         return;
     }
@@ -305,6 +338,8 @@ void list(char *range, List *file) {
     int *ranges = parse_range(range, file);
     int start = ranges[0];
     int end = ranges[1];
+
+
 
     //Print out the chosen range
     int i = 1;
@@ -320,7 +355,6 @@ void list(char *range, List *file) {
         }
         i++;
     }
-    printf(2, "\n");
 }
 
 //When run, will ask if you would like to save changes before quitting.
@@ -382,7 +416,7 @@ int main(int argc, char **argv) {
 //Breaks file down into a linked list where each node contains
 //data for each new line
 void read_file(List *list, char *file) {
-    static char buf[512];
+    char fbuf[512];
     int fd; //File descriptor (Reference to opened file)
 
     //Open file and print error message if it cannot be opened
@@ -395,7 +429,7 @@ void read_file(List *list, char *file) {
     int n; //Current buffer size from read call
     int totalN = 0;
     char *tempBuf = malloc(sizeof (char));
-    while ( (n = read(fd, buf, sizeof buf)) > 0 ) {
+    while ( (n = read(fd, fbuf, sizeof fbuf)) > 0 ) {
         totalN += n;
 
         //Allocate extra space
@@ -407,12 +441,11 @@ void read_file(List *list, char *file) {
             memmove(tempBuf, temp, strlen(temp));
 
         //Move stuff from buffer and append to temp
-        memmove(tempBuf + (totalN - n), buf, n);
+        memmove(tempBuf + (totalN - n), fbuf, n);
         free(temp);
     }
-    free(buf);
 
-    Node **prev_line = &list->head;
+    Node *prev_line = 0;
     int offset = 0;
     for (int i = 0; i < totalN; i++) {
         if (tempBuf[i] == '\n' || i == totalN - 1) {
@@ -428,11 +461,15 @@ void read_file(List *list, char *file) {
                 ln->line += 1;
 
             //Enter line node into linked list
-            ln->prev = *prev_line;
+            if (!list->head) {
+                list->head = ln;
+            } else {
+                prev_line->next = ln;
+                ln->prev = prev_line;
+            }
+            
             list->end = ln;
-            *prev_line = ln; //Assign the head or next in prev line to current line
-            prev_line = &ln->next; //Set prev line to next in current line for next iteration.
-
+            prev_line = ln;
             list->count++;
             offset = i;
         }
@@ -488,8 +525,8 @@ void help(int argc, char **args) {
             printf(2, "%s  ", cmds[i]);
 
         printf(2, "\nDo help *command* to view information on the specific command.\n"
-            "Everything after the first argument ignores whitespace.\nWhere range is a parameter, you can"
-            "use the start:end syntax to specify it.\n"
+            "Everything after the first argument ignores whitespace.\n"
+            "Where range is a parameter, you can use the start:end syntax to specify it.\n"
             "Commands can be abbreviated to 1-4 characters and are case-insensitive.\n");
     } else if (argc == 2) {
         switch (get_cmd(args[1])) {
@@ -518,7 +555,6 @@ void print_list(List *file) {
 
 //Returns the length of a linked list, assuming first item is called head
 int list_len(List *ls) {
-    printf(2, "%s\n", ls->end->line);
     int count = 0;
     for (Node *ln = ls->head; ln != 0; ln = ln->next)
         count++;
@@ -527,9 +563,9 @@ int list_len(List *ls) {
 
 /*
     Determines the range from a start:end string format, returns an array of 2 ints
-    Examples:   ":"     returns { 0, ListLength }
+    Examples:   ":"     returns { 1, ListLength }
                 "2:"    returns { 2, ListLength }
-                ":5"    returns { 0, 5 }
+                ":5"    returns { 1, 5 }
                 "2:5"   returns { 2, 5 }
                 "10"    returns { 10, 10 }
 */
@@ -538,13 +574,15 @@ int* parse_range(char *range, List *file) {
     ranges[0] = -1;
     ranges[1] = -1;
 
+    int start = 1;
+    int end = list_len(file);
+
+    //If *range is empty, just return the full range
     if (range[0] == '\0' || range[0] == '\n') {
-        printf(1, "Invalid range. Please enter range in end:start format\n");
+        ranges[0] = start;
+        ranges[1] = end;
         return ranges;
     }
-
-    int start = 0;
-    int end = list_len(file);
 
     *(strchr(range, '\n')) = '\0';
     //Replace ':' with '\0' to split the string into two
@@ -588,4 +626,27 @@ int get_cmd(char *cmd) {
     }
 
     return -1;
+}
+
+//Takes an array of strings and joins them into one
+char* join_str(char **strgs) {
+    int strLength = 0;
+    for (int i = 0; strgs[i]; i++) {
+        strLength += strlen(strgs[i]);
+        strLength++; //For whitespace
+    }
+    
+    char *str = malloc(strLength * sizeof (char*));
+
+    int offset = 0;
+    for (int i = 0; strgs[i]; i++) {
+        strcpy(str + offset, strgs[i]);
+        offset += strlen(strgs[i]) + 1;
+        str[offset - 1] = ' ';
+    }
+
+    str[offset] = '\0';
+
+    return str;
+
 }
