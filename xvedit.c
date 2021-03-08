@@ -53,18 +53,20 @@ void parse_input(char *buf, List *file) {
     char **args = malloc(3 * sizeof *args);
     args[0] = buf;
     int argc = 1;
-    int isClosed = 0;
+    //int isClosed = 0;
     for (int i = 0; buf[i]; i++) {
-
+        
+        /*
         //If argument begins with a ", ignore whitespace (Also remove the ")
         if (buf[i] == '"' && buf[i - 1] == '\0') {
             isClosed = 1;
             args[argc - 1] = buf + i + 1;
             continue;
         }
+        */
 
         //If whitespace found, it's a new argument unless its in quotes
-        if (buf[i] == ' ' && !isClosed) {
+        if (buf[i] == ' ' /*&& !isClosed*/) {
             buf[i] = '\0';
             args[argc] = buf + i + 1;
             argc++; 
