@@ -142,6 +142,7 @@ void find(char *text, List *file) {
 }
 
 //Will replace the lines in range with line from text
+//Function sometimes causes pagefaults... need to make it more like drop()
 void edit(char *range, char *text, List *file) {
     if (!range[0] || !text[0]) {
         printf(1, "Edit: Missing arguments\n");
@@ -179,7 +180,6 @@ void edit(char *range, char *text, List *file) {
         } else if (i >= start && i <= end) {
             free(ln->line);
             free(ln);
-            file->count--;
         } else if (i == end + 1) {
             startNode->next = newLn;
             newLn->next = ln;
@@ -188,6 +188,7 @@ void edit(char *range, char *text, List *file) {
         i++;
     }
 
+    file->count -= end - start + 1;
     editCount++;
 }
 
