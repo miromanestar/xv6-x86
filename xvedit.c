@@ -69,7 +69,8 @@ char *cmd_doc[] = {
 void parse_input(char *buf, List *file) {
     //Replace whitespace with \0 to turn buffer into an 'array' of chars
     //because I'm lazy and don't feel like reallocating anything
-    char **args = malloc(3 * sizeof *args);
+    char *args[3];
+
     args[0] = buf;
     int argc = 1;
     //int isClosed = 0;
@@ -103,8 +104,6 @@ void parse_input(char *buf, List *file) {
             printf(1, "Invalid command. Type HELP for help on commands.\n");
             break;
     }
-
-    free(args);
 }
 
 //Prints out a list of lines from file that include text
@@ -200,8 +199,8 @@ void end(char **textList, List *file) {
     char *text = join_str(&textList[1]);
 
     if (file->count <= 0) {
-        add("1", text, file);
-        return;
+       add("1", text, file);
+       return;
     }
 
     Node *ln = malloc(sizeof *ln);
@@ -311,6 +310,11 @@ void drop(char *range, List *file) {
         if (i == end) {
             if (end != file->count)
                 endNode = ln->next;
+        }
+
+        if (i >= start && i <= end) {
+            free(ln->line);
+            free(ln);
         }
 
         i++;
