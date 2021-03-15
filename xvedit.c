@@ -51,20 +51,15 @@ char* join_str(char **strgs);
 int editCount;
 
 //Supported commands and documentation
-const char *cmds[] = {
-    "@END", "ADD<", "DROP", "EDIT", "FIND", "LIST", "QUIT", //Core commands
-    "HELP" //Extra credit commands
-};
-
-const char *cmd_doc[] = {
-    "@END *text*\nAppend text as a new line at the end of each file.",
-    "ADD< *line_num* *text*\nInsert new line containing text before *line_num*",
-    "DROP *range*\nDelete lines in *range*",
-    "EDIT *range* *text*\nReplace contents of *range* with text. Surround argument in "" to include everything inside",
-    "FIND *text*\nDisplays the line numbers of lines containing *text*",
-    "LIST *range*\nDisplays the lines within range. No paramter will show whole list",
-    "QUIT\nExits the editor after confirming whether to save changes",
-    "HELP *command*\nLists usage of the specified command"
+const char *cmds[][2] = {
+    { "@END", "*text*\nAppend text as a new line at the end of each file." },
+    { "ADD<", "*line_num* *text*\nInsert new line containing text before *line_num*" },
+    { "DROP", "*range*\nDelete lines in *range*" },
+    { "EDIT", "*range* *text*\nReplace contents of *range* with text. Surround argument in "" to include everything inside" },
+    { "FIND", "*text*\nDisplays the line numbers of lines containing *text*" },
+    { "LIST", "*range*\nDisplays the lines within range. No paramter will show whole list" },
+    { "QUIT", "\nExits the editor after confirming whether to save changes" },
+    { "HELP", "*command*\nLists usage of the specified command" },
 };
 
 void parse_input(char *buf, List *file) {
@@ -535,8 +530,8 @@ void help(int argc, char **args) {
     if (!args[1][0]) {
         printf(2, "xvEdit Commands:\n");
 
-        for (int i = 0; i < sizeof cmds / sizeof (char*); i++)
-            printf(2, "%s  ", cmds[i]);
+        for (int i = 0; cmds[i][0]; i++)
+            printf(2, "%s  ", cmds[i][0]);
 
         printf(2, "\nDo help *command* to view information on the specific command.\n"
             "Everything after the first argument ignores whitespace.\n"
@@ -544,14 +539,14 @@ void help(int argc, char **args) {
             "Commands can be abbreviated to 1-4 characters and are case-insensitive.\n");
     } else if (argc == 2) {
         switch (get_cmd(args[1])) {
-            case 0: printf(2, "%s\n", cmd_doc[0]); break;
-            case 1: printf(2, "%s\n", cmd_doc[1]); break;
-            case 2: printf(2, "%s\n", cmd_doc[2]); break;
-            case 3: printf(2, "%s\n", cmd_doc[3]); break;
-            case 4: printf(2, "%s\n", cmd_doc[4]); break;
-            case 5: printf(2, "%s\n", cmd_doc[5]); break;
-            case 6: printf(2, "%s\n", cmd_doc[6]); break;
-            case 7: printf(2, "%s\n", cmd_doc[7]); break;
+            case 0: printf(2, "%s %s\n", cmds[0][0], cmds[0][1]); break;
+            case 1: printf(2, "%s %s\n", cmds[1][0], cmds[1][1]); break;
+            case 2: printf(2, "%s %s\n", cmds[2][0], cmds[2][1]); break;
+            case 3: printf(2, "%s %s\n", cmds[3][0], cmds[3][1]); break;
+            case 4: printf(2, "%s %s\n", cmds[4][0], cmds[4][1]); break;
+            case 5: printf(2, "%s %s\n", cmds[5][0], cmds[5][1]); break;
+            case 6: printf(2, "%s %s\n", cmds[6][0], cmds[6][1]); break;
+            case 7: printf(2, "%s %s\n", cmds[7][0], cmds[7][1]); break;
             default: printf(2, "xvedit: Invalid argument\n"); break;
         }
     } else {
@@ -633,11 +628,11 @@ int* parse_range(char *range, List *file) {
 //Matches the user input with a command, from 1 letter to the full string
 //Ignores case
 int get_cmd(char *cmd) {
-    for (int i = 0; i < sizeof cmds / sizeof (char*); i++) {
-        if (toupper(cmd[0]) == toupper(cmds[i][0])) {
+    for (int i = 0; cmds[i][0]; i++) {
+        if (toupper(cmd[0]) == toupper(cmds[i][0][0])) {
             int found = 1;
             for (int k = 0; cmd[k]; k++) {
-                if (toupper(cmd[k]) == toupper(cmds[i][k]))
+                if (toupper(cmd[k]) == toupper(cmds[i][0][k]))
                     continue;
                 found = 0;
             }
