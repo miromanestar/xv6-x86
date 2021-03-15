@@ -35,6 +35,7 @@ void quit(List *file);
 //Primary functions
 int main(int argc, char **argv);
 void read_file(List *list, char *file);
+void build_list(List *list, char *tempBuf, int totalN);
 
 //Utility functions
 int confirm();
@@ -50,12 +51,12 @@ char* join_str(char **strgs);
 int editCount;
 
 //Supported commands and documentation
-char *cmds[] = {
+const char *cmds[] = {
     "@END", "ADD<", "DROP", "EDIT", "FIND", "LIST", "QUIT", //Core commands
     "HELP" //Extra credit commands
 };
 
-char *cmd_doc[] = {
+const char *cmd_doc[] = {
     "@END *text*\nAppend text as a new line at the end of each file.",
     "ADD< *line_num* *text*\nInsert new line containing text before *line_num*",
     "DROP *range*\nDelete lines in *range*",
@@ -450,6 +451,20 @@ void read_file(List *list, char *file) {
         free(temp);
     }
 
+    build_list(list, tempBuf, totalN);
+    free(tempBuf);
+    
+    if (n < 0) {
+        printf(1, "xvEdit: read error\n");
+        exit();
+    }
+
+    printf(2, "%d %s read from %s\n", list->count, list->count > 1 ? "lines" : "line", file);
+
+    close(fd);
+}
+
+void build_list(List *list, char *tempBuf, int totalN) {
     Node *prev_line = 0;
     int offset = 0;
     for (int i = 0; i < totalN; i++) {
@@ -459,7 +474,12 @@ void read_file(List *list, char *file) {
             Node *ln = malloc(sizeof *ln);
             ln->line = malloc((i - offset + 1) * sizeof (char) );
             memset(ln->line, 0, i - offset + 1); //Clear out junk data
-            memmove(ln->line, tempBuf + offset, i - offset); //Fill in line with snippet from tempBuf
+            
+            //The last letter gets cut off, so this prevents that bug from happening
+            if (i == totalN - 1)
+                memmove(ln->line, tempBuf + offset, i - offset + 1); //Fill in line with snippet from tempBuf
+            else
+                memmove(ln->line, tempBuf + offset, i - offset); //Fill in line with snippet from tempBuf
             
             //Remove newline characters from the beginning of the line
             if (ln->line[0] == '\n')
@@ -479,17 +499,6 @@ void read_file(List *list, char *file) {
             offset = i;
         }
     }
-
-    free(tempBuf);
-    
-    if (n < 0) {
-        printf(1, "xvEdit: read error\n");
-        exit();
-    }
-
-    printf(2, "%d %s read from %s\n", list->count, list->count > 1 ? "lines" : "line", file);
-
-    close(fd);
 }
 
 int confirm() {
@@ -573,6 +582,7 @@ int list_len(List *ls) {
                 ":5"    returns { 1, 5 }
                 "2:5"   returns { 2, 5 }
                 "10"    returns { 10, 10 }
+                Empty   returns { 1, ListLength }
 */
 int* parse_range(char *range, List *file) {
     static int ranges[2];
@@ -660,5 +670,4 @@ char* join_str(char **strgs) {
     str[offset] = '\0';
 
     return str;
-
 }
