@@ -1,7 +1,7 @@
 /*
     xv6 Editor
     CPTR 365 - Operating Systems
-    Miro Manestar | March 7, 2021
+    Miro Manestar | March 15, 2021
 */
 
 #include "types.h"
@@ -341,7 +341,6 @@ void list(char *range, List *file) {
     int end = ranges[1];
 
 
-
     //Print out the chosen range
     int i = 1;
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
@@ -620,7 +619,6 @@ int* parse_range(char *range, List *file) {
         ranges[0] = -1;
         ranges[1] = -1;
     }
-
 
     return ranges;
 }
