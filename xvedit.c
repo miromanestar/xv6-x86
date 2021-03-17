@@ -139,6 +139,7 @@ void find(char *text, List *file) {
 //Will replace the lines in range with line from text
 //Function sometimes causes pagefaults... need to make it more like drop()
 void edit(char *range, char *text, List *file) {
+
     if (!range[0] || !text[0]) {
         printf(1, "Edit: Missing arguments\n");
         return;
@@ -160,31 +161,14 @@ void edit(char *range, char *text, List *file) {
     if (!confirm())
         return;
 
+    printf(2, "%s\n", range);
+    drop(range, file);
+
     Node *newLn = malloc(sizeof *newLn);
     newLn->line = malloc((strlen(text) + 1) * sizeof (char));
-    file->count++;
     strcpy(newLn->line, text);
-
-    int i = 1;
-    Node *startNode = 0;
-    for (Node *ln = file->head; ln != 0; ln = ln->next) {
-        if (i == 1 && start == 1) {
-            file->head = newLn;
-        } else if (i == start - 1) {
-            startNode = ln;
-        } else if (i >= start && i <= end) {
-            free(ln->line);
-            free(ln);
-        } else if (i == end + 1) {
-            startNode->next = newLn;
-            newLn->next = ln;
-        }
-
-        i++;
-    }
-
-    file->count -= end - start + 1;
-    editCount++;
+    
+    add(range, text, file);
 }
 
 //Appends a new line to the end of the linked list
@@ -270,8 +254,6 @@ void add(char *line_num, char *text, List *file) {
 }
 
 //Inclusively drops the lines from file within range
-//Currently has several memory leaks, but calling free to free the old lines
-//and/or text causes a page fault...
 void drop(char *range, List *file) {
     if (!range[0]) {
         printf(1,"Drop: Missing arguments\n");
@@ -517,8 +499,7 @@ int confirm() {
 }
 
 //Really xv6? You couldn't include this????
-char toupper(char s)
-{
+char toupper(char s) {
     if(('a' <= s) && (s <= 'z'))
         s = 'A' + (s - 'a');
     return s;
@@ -579,6 +560,8 @@ int list_len(List *ls) {
                 Empty   returns { 1, ListLength }
 */
 int* parse_range(char *range, List *file) {
+    char *tempRange = malloc(strlen(range) + 1);
+    strcpy(tempRange, range);
     static int ranges[2];
     ranges[0] = -1;
     ranges[1] = -1;
@@ -587,18 +570,18 @@ int* parse_range(char *range, List *file) {
     int end = list_len(file);
 
     //If *range is empty, just return the full range
-    if (range[0] == '\0' || range[0] == '\n') {
+    if (tempRange[0] == '\0' || tempRange[0] == '\n') {
         ranges[0] = start;
         ranges[1] = end;
         return ranges;
     }
 
-    *(strchr(range, '\n')) = '\0';
+    *(strchr(tempRange, '\n')) = '\0';
     //Replace ':' with '\0' to split the string into two
-    char* tempAddr = strchr(range, ':');
+    char* tempAddr = strchr(tempRange, ':');
     if (!tempAddr) {
-        ranges[0] = atoi(range);
-        ranges[1] = atoi(range);
+        ranges[0] = atoi(tempRange);
+        ranges[1] = atoi(tempRange);
         return ranges;
     }
 
@@ -606,8 +589,8 @@ int* parse_range(char *range, List *file) {
     char* range2 = tempAddr + 1;
 
     //Assign range if it'l :s not just a ':'
-    if (range[0] != '\0')
-        start = atoi(range);
+    if (tempRange[0] != '\0')
+        start = atoi(tempRange);
     if (range2[0] != '\0')
         end = atoi(range2);
 
@@ -620,6 +603,7 @@ int* parse_range(char *range, List *file) {
         ranges[1] = -1;
     }
 
+    free(tempRange);
     return ranges;
 }
 
@@ -632,6 +616,7 @@ int get_cmd(char *cmd) {
             for (int k = 0; cmd[k]; k++) {
                 if (toupper(cmd[k]) == toupper(cmds[i][0][k]))
                     continue;
+
                 found = 0;
             }
 
