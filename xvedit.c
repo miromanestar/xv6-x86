@@ -12,7 +12,6 @@
 typedef struct Node {
     char *line;
     struct Node *next;
-    struct Node *prev;
 } Node;
 
 typedef struct List {
@@ -29,6 +28,8 @@ void edit(char *range, char *text, List *file);
 void end(char **textList, List *file);
 void add(char *line_num, char *text, List *file);
 void drop(char *range, List *file);
+void drop_range(int start, int end, List *file);
+void drop_ln(int start, int end, List *file);
 void list(char *range, List *file);
 void quit(List *file);
 
@@ -161,13 +162,7 @@ void edit(char *range, char *text, List *file) {
     if (!confirm())
         return;
 
-    printf(2, "%s\n", range);
-    drop(range, file);
-
-    Node *newLn = malloc(sizeof *newLn);
-    newLn->line = malloc((strlen(text) + 1) * sizeof (char));
-    strcpy(newLn->line, text);
-    
+    drop_ln(start, end, file);
     add(range, text, file);
 }
 
@@ -188,7 +183,6 @@ void end(char **textList, List *file) {
     strcpy(ln->line, text);
     
     file->end->next = ln;
-    ln->prev = file->end;
     ln->next = 0;
     file->end = ln;
 
@@ -209,7 +203,6 @@ void add(char *line_num, char *text, List *file) {
         newln->line = malloc((strlen(text) + 1) * sizeof (char));
         strcpy(newln->line, text);
 
-        newln->prev = 0;
         newln->next = 0;
         file->head = newln;
         file->end = newln;
@@ -229,20 +222,16 @@ void add(char *line_num, char *text, List *file) {
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
         if (i + 1 == num || num == 1) {
             Node *newln = malloc(sizeof *newln);
-            newln->line = malloc((strlen(text) + 1) * sizeof (char));
+            newln->line = malloc((strlen(text) + 1) * sizeof (char)); //Crashes if drop includes free() more than once
             strcpy(newln->line, text);
 
             //Need separate logic for inserting at the beginning
             if (num == 1) {
                 newln->next = file->head;
-                newln->next->prev = newln;
                 file->head = newln;
             } else {
                 newln->next = ln->next;
-                newln->prev = ln;
-
                 ln->next = newln;
-                newln->next->prev = newln;
             }
 
             file->count++;
@@ -253,7 +242,8 @@ void add(char *line_num, char *text, List *file) {
     }
 }
 
-//Inclusively drops the lines from file within range
+
+//Manages the prompt for dropping lines
 void drop(char *range, List *file) {
     if (!range[0]) {
         printf(1,"Drop: Missing arguments\n");
@@ -276,13 +266,25 @@ void drop(char *range, List *file) {
     if (!confirm())
         return;
 
+    drop_ln(start, end, file);
+
+    printf(2, "%d %s dropped (%d)\n", end - start + 1, end - start + 1 > 1 ? "lines" : "line", file->count);
+}
+
+void drop_range(int start, int end, List *file) {
+    //Workaround... it's dumb
+}
+
+//Inclusively drops the lines from file within range
+void drop_ln(int start, int end, List *file) {
     int i = 1;
     Node *endNode = 0;
     Node *startNode = 0;
+    Node *prevNode = file->head;
     for (Node *ln = file->head; ln != 0; ln = ln->next) {
         if (i == start) {
             if (start != 1)
-                startNode = ln->prev;
+                startNode = prevNode;
         }
         
         if (i == end) {
@@ -291,15 +293,18 @@ void drop(char *range, List *file) {
         }
 
         if (i >= start && i <= end) {
+            //If these two lines are run more than once, next malloc call will cause a page fault
+            printf(2, "\t%d: %s", i, ln->line);
             free(ln->line);
             free(ln);
+        } else {
+            prevNode = ln;
         }
 
         i++;
     }
 
     startNode->next = endNode;
-    endNode->prev = startNode;
 
     if (start == 1)
         file->head = endNode;
@@ -308,7 +313,6 @@ void drop(char *range, List *file) {
     
     editCount++;
     file->count -= end - start + 1;
-    printf(2, "%d %s dropped (%d)\n", end - start + 1, end - start + 1 > 1 ? "lines" : "line", file->count);
 }
 
 //Lists the lines from file within the given range
@@ -466,7 +470,6 @@ void build_list(List *list, char *tempBuf, int totalN) {
                 list->head = ln;
             } else {
                 prev_line->next = ln;
-                ln->prev = prev_line;
             }
             
             list->end = ln;
