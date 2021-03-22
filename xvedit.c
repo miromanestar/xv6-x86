@@ -29,7 +29,6 @@ void end(char **textList, List *file);
 void add(char *line_num, char *text, List *file);
 void drop(char *range, List *file);
 void drop_range(int start, int end, List *file);
-void drop_ln(int start, int end, List *file);
 void list(char *range, List *file);
 void quit(List *file);
 
@@ -162,7 +161,7 @@ void edit(char *range, char *text, List *file) {
     if (!confirm())
         return;
 
-    drop_ln(start, end, file);
+    drop_range(start, end, file);
     add(range, text, file);
 }
 
@@ -266,17 +265,13 @@ void drop(char *range, List *file) {
     if (!confirm())
         return;
 
-    drop_ln(start, end, file);
+    drop_range(start, end, file);
 
     printf(2, "%d %s dropped (%d)\n", end - start + 1, end - start + 1 > 1 ? "lines" : "line", file->count);
 }
 
-void drop_range(int start, int end, List *file) {
-    //Workaround... it's dumb
-}
-
 //Inclusively drops the lines from file within range
-void drop_ln(int start, int end, List *file) {
+void drop_range(int start, int end, List *file) {
     int i = 1;
     Node *endNode = 0;
     Node *startNode = 0;
@@ -294,9 +289,8 @@ void drop_ln(int start, int end, List *file) {
 
         if (i >= start && i <= end) {
             //If these two lines are run more than once, next malloc call will cause a page fault
-            printf(2, "\t%d: %s", i, ln->line);
-            free(ln->line);
-            free(ln);
+            //free(ln->line);
+            //free(ln);
         } else {
             prevNode = ln;
         }
