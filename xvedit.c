@@ -1,7 +1,7 @@
 /*
     xv6 Editor
     CPTR 365 - Operating Systems
-    Miro Manestar | March 15, 2021
+    Miro Manestar | March 21, 2021
 */
 
 #include "types.h"
