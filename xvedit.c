@@ -23,7 +23,7 @@ typedef struct List {
 
 //Commands functions
 void parse_input(char *buf, List *file);
-void find(char *text, List *file);
+void find(char **textList, List *file);
 void edit(char *range, char *text, List *file);
 void end(char **textList, List *file);
 void add(char *line_num, char *text, List *file);
@@ -65,8 +65,9 @@ const char *cmds[][2] = {
 void parse_input(char *buf, List *file) {
     //Replace whitespace with \0 to turn buffer into an 'array' of chars
     //because I'm lazy and don't feel like reallocating anything
-    char *args[3];
+    char *args[4];
 
+    args[3] = '\0';
     args[0] = buf;
     int argc = 1;
     //int isClosed = 0;
@@ -86,13 +87,13 @@ void parse_input(char *buf, List *file) {
 
     //Remove newline at the end of the input
     *(strchr(args[argc - 1], '\n')) = '\0';
-
+    
     switch (get_cmd(args[0])) {
         case 0: end(args, file); break;
         case 1: add(args[1], args[2], file); break;
         case 2: drop(args[1], file); break;
         case 3: edit(args[1], args[2], file); break;
-        case 4: find(args[1], file); break;
+        case 4: find(args, file); break;
         case 5: list(args[1], file); break;
         case 6: quit(file); break;
         case 7: help(argc, args); break;
@@ -103,7 +104,8 @@ void parse_input(char *buf, List *file) {
 }
 
 //Prints out a list of lines from file that include text
-void find(char *text, List *file) {
+void find(char **textList, List *file) {
+    char *text = join_str(&textList[1]);
     int found_arr[list_len(file)];
     int found_count = 0;
 
@@ -642,7 +644,7 @@ char* join_str(char **strgs) {
         str[offset - 1] = ' ';
     }
 
-    str[offset] = '\0';
+    str[strLength - 1] = '\0';
 
     return str;
 }
